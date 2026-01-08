@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Ahmed's Magic Duel</title>
+  <style>
+    body { text-align: center; font-family: Arial; background: #222; color: white; }
+    canvas { background: #444; display: block; margin: 20px auto; border: 3px solid #fff; }
+    #info { font-size: 20px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Ahmed vs Player 2</h1>
+  <canvas id="gameCanvas" width="600" height="400"></canvas>
+  <div id="info">Player1 HP: 100 | Player2 HP: 100</div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // Player data
+    const player1 = { x: 50, y: 180, w: 20, h: 60, hp: 100, color: "blue", bullets: [] };
+    const player2 = { x: 530, y: 180, w: 20, h: 60, hp: 100, color: "red", bullets: [] };
+
+    // Key press tracking
+    const keys = {};
+
+    document.addEventListener("keydown", e => keys[e.key] = true);
+    document.addEventListener("keyup", e => keys[e.key] = false);
+
+    function drawPlayer(player) {
+      ctx.fillStyle = player.color;
+      ctx.fillRect(player.x, player.y, player.w, player.h);
+    }
+
+    function drawBullet(bullet) {
+      ctx.fillStyle = bullet.color;
+      ctx.fillRect(bullet.x, bullet.y, 10, 5);
+    }
+
+    function update() {
+      // Move players
+      if (keys['w'] && player1.y > 0) player1.y -= 5;
+      if (keys['s'] && player1.y + player1.h < canvas.height) player1.y += 5;
+      if (keys['ArrowUp'] && player2.y > 0) player2.y -= 5;
+      if (keys['ArrowDown'] && player2.y + player2.h < canvas.height) player2.y += 5;
+
+      // Shoot bullets
+      if (keys['d']) shoot(player1);
+      if (keys['ArrowLeft']) shoot(player2);
+
+      // Update bullets
+      [player1, player2].forEach(p => {
+        p.bullets.forEach((b, i) => {
+          b.x += b.speed;
+          // Check collision
+          const target = p === player1 ? player2 : player1;
+          if (b.x < target.x + target.w && b.x + 10 > target.x &&
+              b.y < target.y + target.h && b.y + 5 > target.y) {
+            target.hp -= 10;
+            p.bullets.splice(i, 1);
+          }
+          // Remove offscreen bullets
+          else if (b.x < 0 || b.x > canvas.width) p.bullets.splice(i, 1);
+        });
+      });
+
+      // Draw everything
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawPlayer(player1);
+      drawPlayer(player2);
+      player1.bullets.forEach(drawBullet);
+      player2.bullets.forEach(drawBullet);
+
+      // Update HP info
+      document.getElementById("info").innerText = `Player1 HP: ${player1.hp} | Player2 HP: ${player2.hp}`;
+
+      // Check win
+      if (player1.hp <= 0 || player2.hp <= 0) {
+        alert(`${player1.hp <= 0 ? "Player 2 Wins!" : "Player 1 Wins!"}`);
+        player1.hp = 100; player2.hp = 100;
+        player1.y = 180; player2.y = 180;
+        player1.bullets = []; player2.bullets = [];
+      }
+
+      requestAnimationFrame(update);
+    }
+
+    function shoot(player) {
+      if (!player.lastShot || Date.now() - player.lastShot > 300) {
+        const bullet = { x: player === player1 ? player.x + player.w : player.x - 10,
+                         y: player.y + player.h/2 - 2,
+                         speed: player === player1 ? 7 : -7,
+                         color: player.color };
+        player.bullets.push(bullet);
+        player.lastShot = Date.now();
+      }
+    }
+
+    update();
+  </script>
+</body>
+</html>
